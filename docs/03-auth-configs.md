@@ -9,7 +9,7 @@ The kubectl client will be used to generate kubeconfig files which will be consu
 ### OS X
 
 ```
-wget https://storage.googleapis.com/kubernetes-release/release/v1.6.1/bin/darwin/amd64/kubectl
+wget https://storage.googleapis.com/kubernetes-release/release/v1.7.2/bin/darwin/amd64/kubectl
 chmod +x kubectl
 sudo mv kubectl /usr/local/bin
 ```
@@ -17,14 +17,18 @@ sudo mv kubectl /usr/local/bin
 ### Linux
 
 ```
-wget https://storage.googleapis.com/kubernetes-release/release/v1.6.1/bin/linux/amd64/kubectl
+wget https://storage.googleapis.com/kubernetes-release/release/v1.7.2/bin/linux/amd64/kubectl
 chmod +x kubectl
 sudo mv kubectl /usr/local/bin
 ```
 
+## Windows
+
+There are is no version of kubectl provided by the kubernetes projekt. A third party executable can be retrieved from [a github project by Eirik Sletteberg](https://github.com/eirslett/kubectl-windows). Instructions on how to build one local are provided as well.
+
 ## Authentication
 
-The following components will leverage Kubernetes RBAC:
+The following components will leverge Kubernetes RBAC:
 
 * kubelet (client)
 * kube-proxy (client)
@@ -53,8 +57,8 @@ EOF
 Distribute the bootstrap token file to each controller node:
 
 ```
-for host in controller0 controller1 controller2; do
-  gcloud compute scp token.csv ${host}:~/
+for host in icc-ctrl-1 icc-ctrl-2 icc-ctrl-3; do
+  scp token.csv ${host}:~/
 done
 ```
 
@@ -67,9 +71,7 @@ Each kubeconfig requires a Kubernetes master to connect to. To support H/A the I
 ### Set the Kubernetes Public Address
 
 ```
-KUBERNETES_PUBLIC_ADDRESS=$(gcloud compute addresses describe kubernetes-the-hard-way \
-  --region us-central1 \
-  --format 'value(address)')
+KUBERNETES_PUBLIC_ADDRESS=$(dig -short YOUR_API_LOADBALANCER_SERVER_HOSTNAME | tail -1)
 ```
 
 ## Create client kubeconfig files
@@ -77,10 +79,10 @@ KUBERNETES_PUBLIC_ADDRESS=$(gcloud compute addresses describe kubernetes-the-har
 ### Create the bootstrap kubeconfig file
 
 ```
-kubectl config set-cluster kubernetes-the-hard-way \
+kubectl config set-cluster informatik-compute-cloud \
   --certificate-authority=ca.pem \
   --embed-certs=true \
-  --server=https://${KUBERNETES_PUBLIC_ADDRESS}:6443 \
+  --server=https://${KUBERNETES_PUBLIC_ADDRESS}:443 \
   --kubeconfig=bootstrap.kubeconfig
 ```
 
@@ -92,7 +94,7 @@ kubectl config set-credentials kubelet-bootstrap \
 
 ```
 kubectl config set-context default \
-  --cluster=kubernetes-the-hard-way \
+  --cluster=YOUR_CLUSTER_NAME \
   --user=kubelet-bootstrap \
   --kubeconfig=bootstrap.kubeconfig
 ```
@@ -105,10 +107,10 @@ kubectl config use-context default --kubeconfig=bootstrap.kubeconfig
 
 
 ```
-kubectl config set-cluster kubernetes-the-hard-way \
+kubectl config set-cluster informatik-compute-cloud \
   --certificate-authority=ca.pem \
   --embed-certs=true \
-  --server=https://${KUBERNETES_PUBLIC_ADDRESS}:6443 \
+  --server=https://${KUBERNETES_PUBLIC_ADDRESS}:443 \
   --kubeconfig=kube-proxy.kubeconfig
 ```
 
@@ -122,7 +124,7 @@ kubectl config set-credentials kube-proxy \
 
 ```
 kubectl config set-context default \
-  --cluster=kubernetes-the-hard-way \
+  --cluster=YOUR_CLUSTER_NAME \
   --user=kube-proxy \
   --kubeconfig=kube-proxy.kubeconfig
 ```
@@ -131,10 +133,3 @@ kubectl config set-context default \
 kubectl config use-context default --kubeconfig=kube-proxy.kubeconfig
 ```
 
-## Distribute the client kubeconfig files
-
-```
-for host in worker0 worker1 worker2; do
-  gcloud compute scp bootstrap.kubeconfig kube-proxy.kubeconfig ${host}:~/
-done
-```

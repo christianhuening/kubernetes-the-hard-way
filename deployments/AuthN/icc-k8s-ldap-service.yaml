@@ -1,0 +1,20 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: icc-k8s-ldap
+  namespace: kube-system
+  labels:
+    service: icc-k8s-ldap
+spec:
+  ports:
+  -   name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+  -   name: https
+      protocol: TCP
+      port: 8443
+      targetPort: 8443
+  selector:
+    service: icc-k8s-ldap
+  clusterIP: 10.32.0.15

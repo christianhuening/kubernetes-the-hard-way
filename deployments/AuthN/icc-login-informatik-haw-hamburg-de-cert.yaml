@@ -1,0 +1,9 @@
+apiVersion: v1
+data:
+  tls.crt: base64cert
+  tls.key: base64key
+kind: Secret
+metadata:
+  namespace: kube-system
+  name: icc-login-informatik-haw-hamburg-de
+type: kubernetes.io/tls

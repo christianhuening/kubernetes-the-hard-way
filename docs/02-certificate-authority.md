@@ -14,6 +14,10 @@ admin.pem
 admin-key.pem
 ca-key.pem
 ca.pem
+etcd-key.pem
+etcd.pem
+apiserver-key.pem
+apiserver.pem
 kubernetes-key.pem
 kubernetes.pem
 kube-proxy.pem
@@ -83,15 +87,15 @@ cat > ca-csr.json <<EOF
   "CN": "Kubernetes",
   "key": {
     "algo": "rsa",
-    "size": 2048
+    "size": 4096
   },
   "names": [
     {
-      "C": "US",
-      "L": "Portland",
-      "O": "Kubernetes",
+      "C": "DE",
+      "L": "Hamburg",
+      "O": "NAME OF YOUR CLOUD SOLUTION",
       "OU": "CA",
-      "ST": "Oregon"
+      "ST": "Hamburg"
     }
   ]
 }
@@ -126,15 +130,15 @@ cat > admin-csr.json <<EOF
   "hosts": [],
   "key": {
     "algo": "rsa",
-    "size": 2048
+    "size": 4096
   },
   "names": [
     {
-      "C": "US",
-      "L": "Portland",
+      "C": "DE",
+      "L": "Hamburg",
       "O": "system:masters",
       "OU": "Cluster",
-      "ST": "Oregon"
+      "ST": "Hamburg"
     }
   ]
 }
@@ -170,15 +174,15 @@ cat > kube-proxy-csr.json <<EOF
   "hosts": [],
   "key": {
     "algo": "rsa",
-    "size": 2048
+    "size": 4096
   },
   "names": [
     {
-      "C": "US",
-      "L": "Portland",
+      "C": "DE",
+      "L": "Hamburg",
       "O": "system:node-proxier",
       "OU": "Cluster",
-      "ST": "Oregon"
+      "ST": "Hamburg"
     }
   ]
 }
@@ -203,19 +207,14 @@ kube-proxy-key.pem
 kube-proxy.pem
 ```
 
-### Create the kubernetes server certificate
+### Create the Kubernetes API-Server certificate
 
 The Kubernetes public IP address will be included in the list of subject alternative names for the Kubernetes server certificate. This will ensure the TLS certificate is valid for remote client access.
 
-```
-KUBERNETES_PUBLIC_ADDRESS=$(gcloud compute addresses describe kubernetes-the-hard-way \
-  --region us-central1 \
-  --format 'value(address)')
-```
 
-Create the Kubernetes server certificate signing request:
+Create the Kubernetes API-Server certificate signing request:
 
-```
+```yaml
 cat > kubernetes-csr.json <<EOF
 {
   "CN": "kubernetes",
@@ -224,24 +223,34 @@ cat > kubernetes-csr.json <<EOF
     "10.240.0.10",
     "10.240.0.11",
     "10.240.0.12",
-    "${KUBERNETES_PUBLIC_ADDRESS}",
+    "YOUR_API_LOADBALANCER_NODE_IP",
+    "YOUR_API_SERVER_NODE_IP_1",
+    "YOUR_API_SERVER_NODE_IP_1",
+    "YOUR_API_SERVER_NODE_IP_1",
+    "YOUR_API_SERVER_NODE_HOSTNAME_1",
+    "YOUR_API_SERVER_NODE_HOSTNAME_2",
+    "YOUR_API_SERVER_NODE_HOSTNAME_3,
     "127.0.0.1",
-    "kubernetes.default"
+    "kubernetes",
+    "kubernetes.default",
+    "kubernetes.default.svc",
+    "kubernetes.default.svc.cluster.local"
   ],
   "key": {
     "algo": "rsa",
-    "size": 2048
+    "size": 4096
   },
   "names": [
     {
-      "C": "US",
-      "L": "Portland",
+      "C": "DE",
+      "L": "Hamburg",
       "O": "Kubernetes",
       "OU": "Cluster",
-      "ST": "Oregon"
+      "ST": "Hamburg"
     }
   ]
 }
+
 EOF
 ```
 
@@ -263,20 +272,61 @@ kubernetes-key.pem
 kubernetes.pem
 ```
 
-## Distribute the TLS certificates
+### Create the etcd server certificate
 
-Set the list of Kubernetes hosts where the certs should be copied to:
+The IP addresses of each of the etcd nodes will be included in the list of subject alternative names for the etcd server certificate. This will ensure the TLS certificate is valid for remote client access.
 
-The following commands will copy the TLS certificates and keys to each Kubernetes host using the `gcloud compute scp` command.
-
-```
-for host in worker0 worker1 worker2; do
-  gcloud compute scp ca.pem kube-proxy.pem kube-proxy-key.pem ${host}:~/
-done
-```
+The certificate needs to include each of the names of the etcd peers
 
 ```
-for host in controller0 controller1 controller2; do
-  gcloud compute scp ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem ${host}:~/
-done
+KUBERNETES_PUBLIC_ADDRESS=$(dig +short icc-k8s-api.informatik.haw-hamburg.de)
 ```
+
+Create the etcd server certificate signing request:
+
+```yaml
+cat > etcd-csr.json <<EOF
+{
+  "CN": "etcd",
+  "hosts": [
+    "YOUR_ETCD_SERVER_NODE_HOSTNAME_1",
+    "YOUR_ETCD_SERVER_NODE_HOSTNAME_2",
+    "YOUR_ETCD_SERVER_NODE_HOSTNAME_3",
+    "YOUR_ETCD_SERVER_NODE_HOSTNAME_4",
+    "YOUR_ETCD_SERVER_NODE_HOSTNAME_5"
+  ],
+  "key": {
+    "algo": "rsa",
+    "size": 4096
+  },
+  "names": [
+    {
+      "C": "DE",
+      "L": "Hamburg",
+      "O": "Etcd",
+      "OU": "Cluster",
+      "ST": "Hamburg"
+    }
+  ]
+}
+EOF
+```
+
+Generate the etcd certificate and private key:
+
+```
+cfssl gencert \
+  -ca=ca.pem \
+  -ca-key=ca-key.pem \
+  -config=ca-config.json \
+  -profile=kubernetes \
+  etcd-csr.json | cfssljson -bare etcd
+```
+
+Results:
+
+```
+etcd-key.pem
+etcd.pem
+```
+

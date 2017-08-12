@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mypvc
+  namespace: default
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rbd2
+spec:
+  containers:
+  - image: kubernetes/pause
+    name: rbd-rw
+    volumeMounts:
+    - mountPath: /mnt/rbd
+      name: rbdpd
+  volumes:
+  - name: rbdpd
+    persistentVolumeClaim:
+      claimName: mypvc

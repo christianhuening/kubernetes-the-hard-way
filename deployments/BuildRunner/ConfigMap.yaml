@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gitlab-runner
+  namespace: mars-build
+data:
+  config.toml: |
+    concurrent = 4
+
+    [[runners]]
+      name = "Kubernetes Runner"
+      url = "https://YOUR RUNNER URL"
+      executor = "kubernetes"
+      [runners.kubernetes]
+        namespace = "gitlab-build"

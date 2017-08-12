@@ -3,11 +3,18 @@
 Run the following commands from the machine which will be your Kubernetes Client
 
 ## Download and Install kubectl
+### Windows
+```
+1. Download kubectl for Windows from here: https://github.com/eirslett/kubectl-windows/releases
+2. Put it in a place that you want to add to your path and add that place to your path
+ALTERNATIVELY follow this guide:
+https://gist.github.com/AdamLJohnson/16b55b66c84ce53868b3923f3b7ae706
+```
 
 ### OS X
 
 ```
-wget https://storage.googleapis.com/kubernetes-release/release/v1.7.0/bin/darwin/amd64/kubectl
+curl -O https://storage.googleapis.com/kubernetes-release/release/v1.7.2/bin/darwin/amd64/kubectl
 chmod +x kubectl
 sudo mv kubectl /usr/local/bin
 ```
@@ -15,7 +22,7 @@ sudo mv kubectl /usr/local/bin
 ### Linux
 
 ```
-wget https://storage.googleapis.com/kubernetes-release/release/v1.7.0/bin/linux/amd64/kubectl
+wget https://storage.googleapis.com/kubernetes-release/release/v1.7.2/bin/linux/amd64/kubectl
 chmod +x kubectl
 sudo mv kubectl /usr/local/bin
 ```
@@ -25,9 +32,7 @@ sudo mv kubectl /usr/local/bin
 In this section you will configure the kubectl client to point to the [Kubernetes API Server Frontend Load Balancer](04-kubernetes-controller.md#setup-kubernetes-api-server-frontend-load-balancer).
 
 ```
-KUBERNETES_PUBLIC_ADDRESS=$(gcloud compute addresses describe kubernetes-the-hard-way \
-  --region us-central1 \
-  --format 'value(address)')
+KUBERNETES_PUBLIC_ADDRESS=$(dig +short YOUR_API_LOADBALANCER_SERVER_HOSTNAME | tail -1)
 ```
 
 Also be sure to locate the CA certificate [created earlier](02-certificate-authority.md). Since we are using self-signed TLS certs we need to trust the CA certificate so we can verify the remote API Servers.
@@ -36,27 +41,30 @@ Also be sure to locate the CA certificate [created earlier](02-certificate-autho
 
 The following commands will build up the default kubeconfig file used by kubectl.
 
+> if you are using gitbash on windows to run kubectl, you need to be on the same drive as your `~/.kube` folder. The easiest way is to copy the needed certs (`ca.pem`, `admin.pem`, `admin-key.pem`) into `~/.kube/certs/icc` and provide relative paths to there to the following commands.
+
 ```
-kubectl config set-cluster kubernetes-the-hard-way \
-  --certificate-authority=ca.pem \
+kubectl config set-cluster informatik-compute-cloud \
+  --certificate-authority=~/.kube/certs/icc/ca.pem \
   --embed-certs=true \
-  --server=https://${KUBERNETES_PUBLIC_ADDRESS}:6443
+  --server=https://${KUBERNETES_PUBLIC_ADDRESS}:443
 ```
 
 ```
 kubectl config set-credentials admin \
-  --client-certificate=admin.pem \
-  --client-key=admin-key.pem
+  --client-certificate=~/.kube/certs/icc/admin.pem \
+  --client-key=~/.kube/certs/icc/admin-key.pem
 ```
 
+
 ```
-kubectl config set-context kubernetes-the-hard-way \
-  --cluster=kubernetes-the-hard-way \
+kubectl config set-context informatik-compute-cloud \
+  --cluster=informatik-compute-cloud \
   --user=admin
 ```
 
 ```
-kubectl config use-context kubernetes-the-hard-way
+kubectl config use-context informatik-compute-cloud
 ```
 
 At this point you should be able to connect securly to the remote API server:
@@ -67,11 +75,11 @@ kubectl get componentstatuses
 
 ```
 NAME                 STATUS    MESSAGE              ERROR
-controller-manager   Healthy   ok                   
-scheduler            Healthy   ok                   
-etcd-2               Healthy   {"health": "true"}   
-etcd-0               Healthy   {"health": "true"}   
-etcd-1               Healthy   {"health": "true"}  
+controller-manager   Healthy   ok
+scheduler            Healthy   ok
+etcd-2               Healthy   {"health": "true"}
+etcd-0               Healthy   {"health": "true"}
+etcd-1               Healthy   {"health": "true"}
 ```
 
 ```
@@ -80,7 +88,7 @@ kubectl get nodes
 
 ```
 NAME      STATUS    AGE       VERSION
-worker0   Ready     7m        v1.6.1
-worker1   Ready     5m        v1.6.1
-worker2   Ready     2m        v1.6.1
+worker0   Ready     7m        v1.6.0-rc.1
+worker1   Ready     5m        v1.6.0-rc.1
+worker2   Ready     2m        v1.6.0-rc.1
 ```

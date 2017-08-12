@@ -1,0 +1,11 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: prometheus-frontend-rules
+  labels:
+    role: prometheus-rulefiles
+    prometheus: frontend
+data:
+  frontend.rules: |
+    ALERT ExampleAlert
+    IF vector(1)

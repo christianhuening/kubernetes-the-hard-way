@@ -22,7 +22,7 @@ nginx-158599303-rfhm3   1/1       Running   0          13s       10.200.0.2   wo
 kubectl expose deployment nginx --type NodePort
 ```
 
-> Note that --type=LoadBalancer will not work because we did not configure a cloud provider when bootstrapping this cluster.
+> Note that --type=LoadBalancer will not work because we did not set up the haproxy properly. Watch this space for updates.
 
 Grab the `NodePort` that was setup for the nginx service:
 
@@ -30,26 +30,17 @@ Grab the `NodePort` that was setup for the nginx service:
 NODE_PORT=$(kubectl get svc nginx --output=jsonpath='{range .spec.ports[0]}{.nodePort}')
 ```
 
-### Create the Node Port Firewall Rule
 
-```
-gcloud compute firewall-rules create kubernetes-nginx-service \
-  --allow=tcp:${NODE_PORT} \
-  --network kubernetes-the-hard-way
-```
-
-Grab the `EXTERNAL_IP` for one of the worker nodes:
-
-```
-NODE_PUBLIC_IP=$(gcloud compute instances describe worker0 \
-  --format 'value(networkInterfaces[0].accessConfigs[0].natIP)')
-```
 
 Test the nginx service using cURL:
 
 ```
-curl http://${NODE_PUBLIC_IP}:${NODE_PORT}
+curl http://icc-node-1.ful:${NODE_PORT}
+curl http://icc-node-2.ful:${NODE_PORT}
+curl http://icc-node-3.ful:${NODE_PORT}
 ```
+
+Each should result in the following text being returned
 
 ```
 <!DOCTYPE html>

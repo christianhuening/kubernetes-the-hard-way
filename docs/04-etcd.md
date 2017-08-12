@@ -1,25 +1,29 @@
 # Bootstrapping a H/A etcd cluster
 
-In this lab you will bootstrap a 3 node etcd cluster. The following virtual machines will be used:
+In this lab you will bootstrap a 5 node etcd cluster. The following virtual machines will be used:
 
-* controller0
-* controller1
-* controller2
+* icc-etcd-1
+* icc-etcd-2
+* icc-etcd-3
+* icc-etcd-4
+* icc-etcd-5
 
 ## Why
 
 All Kubernetes components are stateless which greatly simplifies managing a Kubernetes cluster. All state is stored
-in etcd, which is a database and must be treated specially. To limit the number of compute resource to complete this lab etcd is being installed on the Kubernetes controller nodes, although some people will prefer to run etcd on a dedicated set of machines for the following reasons:
+in etcd, which is a database and must be treated specially. To support this in production, the etcd cluster is run on a dedicated set of machines for the following reasons:
 
 * The etcd lifecycle is not tied to Kubernetes. We should be able to upgrade etcd independently of Kubernetes.
 * Scaling out etcd is different than scaling out the Kubernetes Control Plane.
 * Prevent other applications from taking up resources (CPU, Memory, I/O) required by etcd.
 
-However, all the e2e tested configurations currently run etcd on the master nodes.
+However, all the e2e tested configurations within the Kubernetes development project, currently run etcd on the master nodes.
 
 ## Provision the etcd Cluster
 
-Run the following commands on `controller0`, `controller1`, `controller2`:
+Run the following commands on `icc-etcd-1`, `icc-etcd-2`, `icc-etcd-3`, `icc-etcd-4`, `icc-etcd-5`:
+
+For execution in production, this ist supported by the appropriate puppet configuration.
 
 ### TLS Certificates
 
@@ -35,84 +39,61 @@ sudo mkdir -p /etc/etcd/
 sudo cp ca.pem kubernetes-key.pem kubernetes.pem /etc/etcd/
 ```
 
-### Download and Install the etcd binaries
+### Install the etcd binaries
 
-Download the official etcd release binaries from `coreos/etcd` GitHub project:
-
-```
-wget https://github.com/coreos/etcd/releases/download/v3.1.4/etcd-v3.1.4-linux-amd64.tar.gz
-```
-
-Extract and install the `etcd` server binary and the `etcdctl` command line client: 
+Since the ICC is mainly based on machines running Ubuntu, a package is available for etcd. But since the ICC requires etcd > 3.0.0, Ubuntu starting with 17.04 is required.
 
 ```
-tar -xvf etcd-v3.1.4-linux-amd64.tar.gz
+apt-get install etcd
 ```
 
-```
-sudo mv etcd-v3.1.4-linux-amd64/etcd* /usr/bin/
-```
+All etcd data is stored under the etcd data directory. In a production cluster the data directory should be backed by a persistent disk. This directory is created by installing the package.
 
-All etcd data is stored under the etcd data directory. In a production cluster the data directory should be backed by a persistent disk. Create the etcd data directory:
-
-```
-sudo mkdir -p /var/lib/etcd
-```
 
 ### Set The Internal IP Address
 
 The internal IP address will be used by etcd to serve client requests and communicate with other etcd peers.
 
 ```
-INTERNAL_IP=$(curl -s -H "Metadata-Flavor: Google" \
-  http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip)
+INTERNAL_IP=$(facter networking.ip)
 ```
 
 Each etcd member must have a unique name within an etcd cluster. Set the etcd name:
 
 ```
-ETCD_NAME=controller$(echo $INTERNAL_IP | cut -c 11)
+ETCD_NAME=$(hostname -s)
 ```
 
-The etcd server will be started and managed by systemd. Create the etcd systemd unit file:
+The etcd server will be started and managed by systemd. An appropriate systemd unit file comes with the Ubuntu package. But a number of parameters need to be set in the appropriate defaults file:
+
+
 
 ```
-cat > etcd.service <<EOF
-[Unit]
-Description=etcd
-Documentation=https://github.com/coreos
-
-[Service]
-ExecStart=/usr/bin/etcd \\
-  --name ${ETCD_NAME} \\
-  --cert-file=/etc/etcd/kubernetes.pem \\
-  --key-file=/etc/etcd/kubernetes-key.pem \\
-  --peer-cert-file=/etc/etcd/kubernetes.pem \\
-  --peer-key-file=/etc/etcd/kubernetes-key.pem \\
-  --trusted-ca-file=/etc/etcd/ca.pem \\
-  --peer-trusted-ca-file=/etc/etcd/ca.pem \\
-  --peer-client-cert-auth \\
-  --client-cert-auth \\
-  --initial-advertise-peer-urls https://${INTERNAL_IP}:2380 \\
-  --listen-peer-urls https://${INTERNAL_IP}:2380 \\
-  --listen-client-urls https://${INTERNAL_IP}:2379,http://127.0.0.1:2379 \\
-  --advertise-client-urls https://${INTERNAL_IP}:2379 \\
-  --initial-cluster-token etcd-cluster-0 \\
-  --initial-cluster controller0=https://10.240.0.10:2380,controller1=https://10.240.0.11:2380,controller2=https://10.240.0.12:2380 \\
-  --initial-cluster-state new \\
-  --data-dir=/var/lib/etcd
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
+cat > etcd.default <<EOF
+ETCD_NAME="$(hostname -s)"
+ETCD_DATA_DIR="/var/lib/etcd"
+ETCD_LISTEN_PEER_URLS="https://<%= $internal_ip %>:2380"
+ETCD_LISTEN_CLIENT_URLS="https://<%= $internal_ip %>:2379,https://localhost:2379"
+ETCD_INITIAL_ADVERTISE_PEER_URLS="https://<%= $internal_ip %>:2380"
+ETCD_INITIAL_CLUSTER="icc-etcd-1=https://141.22.30.32:2380,icc-etcd-2=https://141.22.30.33:2380,icc-etcd-3=https://141.22.30.34:2380,icc-etcd-4=https://141.22.30.352380,icc-etcd-5=https://141.22.30.36:2380"
+ETCD_INITIAL_CLUSTER_STATE="new"
+ETCD_INITIAL_CLUSTER_TOKEN="etcd-cluster-0"
+ETCD_ADVERTISE_CLIENT_URLS="https://<%= $internal_ip %>:2379"
+ETCD_CERT_FILE="/etc/etcd/kubernetes.pem"
+ETCD_KEY_FILE="/etc/etcd/kubernetes-key.pem"
+ETCD_CLIENT_CERT_AUTH="true"
+ETCD_TRUSTED_CA_FILE="/etc/etcd/ca.pem"
+ETCD_PEER_CERT_FILE="/etc/etcd/kubernetes.pem"
+ETCD_PEER_KEY_FILE="/etc/etcd/kubernetes-key.pem"
+ETCD_PEER_CLIENT_CERT_AUTH="true"
+ETCD_PEER_TRUSTED_CA_FILE="/etc/etcd/ca.pem"
 EOF
 ```
 
 Once the etcd systemd unit file is ready, move it to the systemd system directory:
 
 ```
-sudo mv etcd.service /etc/systemd/system/
+sudo mv etcd.default /etc/default/etcd
 ```
 
 Start the etcd server:
@@ -133,25 +114,32 @@ sudo systemctl start etcd
 sudo systemctl status etcd --no-pager
 ```
 
-> Remember to run these steps on `controller0`, `controller1`, and `controller2`
+> Remember to run these steps on all five nodes of the etcd cluster
 
 ## Verification
 
-Once all 3 etcd nodes have been bootstrapped verify the etcd cluster is healthy:
+Once all 5 etcd nodes have been bootstrapped verify the etcd cluster is healthy:
 
 * On one of the controller nodes run the following command:
 
 ```
 sudo etcdctl \
   --ca-file=/etc/etcd/ca.pem \
-  --cert-file=/etc/etcd/kubernetes.pem \
-  --key-file=/etc/etcd/kubernetes-key.pem \
-  cluster-health
+  --cert-file=/etc/etcd/etcd.pem \
+  --key-file=/etc/etcd/etcd-key.pem \
+  --insecure-transport=false \
+  --endpoints=141.22.30.36:2379 \
+  -w table member list
 ```
 
 ```
-member 3a57933972cb5131 is healthy: got healthy result from https://10.240.0.12:2379
-member f98dc20bce6225a0 is healthy: got healthy result from https://10.240.0.10:2379
-member ffed16798470cab5 is healthy: got healthy result from https://10.240.0.11:2379
-cluster is healthy
++------------------+---------+------------+---------------------------+---------------------------+
+|        ID        | STATUS  |    NAME    |        PEER ADDRS         |       CLIENT ADDRS        |
++------------------+---------+------------+---------------------------+---------------------------+
+| 3d0fa8ceae1b7a61 | started | icc-etcd-4 | https://141.22.30.35:2380 | https://141.22.30.35:2379 |
+| 3d9ce7c381e7f003 | started | icc-etcd-3 | https://141.22.30.34:2380 | https://141.22.30.34:2379 |
+| ca225d371e604f6c | started | icc-etcd-2 | https://141.22.30.33:2380 | https://141.22.30.33:2379 |
+| f15071bb2bcc0510 | started | icc-etcd-1 | https://141.22.30.32:2380 | https://141.22.30.32:2379 |
+| f65430d6c44d7a2a | started | icc-etcd-5 | https://141.22.30.36:2380 | https://141.22.30.36:2379 |
++------------------+---------+------------+---------------------------+---------------------------+
 ```

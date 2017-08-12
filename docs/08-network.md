@@ -1,62 +1,101 @@
 # Managing the Container Network Routes
 
-Now that each worker node is online we need to add routes to make sure that Pods running on different machines can talk to each other. In this lab we are not going to provision any overlay networks and instead rely on Layer 3 networking. That means we need to add routes to our router. In GCP each network has a router that can be configured. If this was an on-prem datacenter then ideally you would need to add the routes to your local router.
+As the nodes of the ICC are all positioned within the same layer 3 network, there are no complex routing rules to consider. This may change eventually as the cluster grows to consume the almost 500 available IP addresses within that network. But even for that case the ICC comes prepared, as the VXLAN overlay network used in flannel, can be routed to other networks just like any other Layer 4 package.
 
-## Container Subnets
+In order separate the networks between sets of pods, namespaces and applications, the ICC uses the Calico network policy framework. Together with flannel it forms [Canal](https://github.com/projectcalico/canal) which is deployed below.
 
-The IP addresses for each pod will be allocated from the `podCIDR` range assigned to each Kubernetes worker through the node registration process. The `podCIDR` will be allocated from the cluster cidr range as configured on the Kubernetes Controller Manager with the following flag:
+
+## Preparing the Kubelets for CNI ##
+Requirements:
+
+- The Kubernetes cluster must be configured to provide serviceaccount tokens to pods.
+- kubelets must be started with --network-plugin=cni and have --cni-conf-dir and --cni-bin-dir properly set
+- The controller manager must be started with --cluster-cidr=10.244.0.0/16 and --allocate-node-cidrs=true.
+
+The following steps below have to be performed for each of the nodes `icc-node-1`, `icc-node-2` and `icc-node-3`:
+
+Switch the network plugin from `kubenet` to `cni` by changing the kubelet systemd service definition:
 
 ```
---cluster-cidr=10.200.0.0/16
+cat > kubelet.service <<EOF
+[Unit]
+Description=Kubernetes Kubelet
+Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+After=docker.service
+Requires=docker.service
+
+[Service]
+ExecStart=/usr/bin/kubelet \\
+  --api-servers=https://${PUBLIC_K8S_ADDRESS}:443 \\
+  --allow-privileged=true \\
+  --cluster-dns=10.32.0.10 \\
+  --cluster-domain=cluster.local \\
+  --container-runtime=docker \\
+  --experimental-bootstrap-kubeconfig=/var/lib/kubelet/bootstrap.kubeconfig \\
+  --network-plugin=cni \\
+  --kubeconfig=/var/lib/kubelet/kubeconfig \\
+  --serialize-image-pulls=false \\
+  --register-node=true \\
+  --tls-cert-file=/var/lib/kubelet/kubelet-client.crt \\
+  --tls-private-key-file=/var/lib/kubelet/kubelet-client.key \\
+  --cert-dir=/var/lib/kubelet \\
+  --v=2
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
 ```
 
-Based on the above configuration each node will receive a `/24` subnet. For example:
+```
+sudo mv kubelet.service /etc/systemd/system/kubelet.service
+```
 
 ```
-10.200.0.0/24
-10.200.1.0/24
-10.200.2.0/24
-...
-``` 
+sudo systemctl daemon-reload
+```
 
-## Get the Routing Table
+```
+sudo systemctl enable kubelet
+```
 
-The first thing we need to do is gather the information required to populate the router table. We need the Internal IP address and Pod Subnet for each of the worker nodes.
+```
+sudo systemctl start kubelet
+```
 
-Use `kubectl` to print the `InternalIP` and `podCIDR` for each worker node:
+```
+sudo systemctl status kubelet --no-pager
+```
+
+
+## Applying the Network ##
+
+To set up the neccesary roles and permission, the ConfigMap provided by the Canal project will work without changes.
+
+```
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/canal/master/k8s-install/1.6/rbac.yaml
+```
+
+The actual setup of the network elements needs some small changes, mainly due to the changed CIDR for the pod networks (`10.200.0.0/16` instead of the `10.244.0.0/16` used by the original confguration (KTIW_ROOT is the top directory of this document).
+
+```
+kubectl apply -f ${KTIW_ROOT}/config_maps/canal_fabric.yaml
+```
+
+This will set up a network in each node and configure it to use flannel and calico.
+
+## Check the Network Adresses ##
 
 ```
 kubectl get nodes \
   --output=jsonpath='{range .items[*]}{.status.addresses[?(@.type=="InternalIP")].address} {.spec.podCIDR} {"\n"}{end}'
 ```
 
-Output:
+shoud provide a list similar to this:
 
 ```
-10.240.0.20 10.200.0.0/24 
-10.240.0.21 10.200.1.0/24 
-10.240.0.22 10.200.2.0/24 
-```
-
-## Create Routes
-
-```
-gcloud compute routes create kubernetes-route-10-200-0-0-24 \
-  --network kubernetes-the-hard-way \
-  --next-hop-address 10.240.0.20 \
-  --destination-range 10.200.0.0/24
-```
-
-```
-gcloud compute routes create kubernetes-route-10-200-1-0-24 \
-  --network kubernetes-the-hard-way \
-  --next-hop-address 10.240.0.21 \
-  --destination-range 10.200.1.0/24
-```
-
-```
-gcloud compute routes create kubernetes-route-10-200-2-0-24 \
-  --network kubernetes-the-hard-way \
-  --next-hop-address 10.240.0.22 \
-  --destination-range 10.200.2.0/24
+141.22.10.209 10.200.2.0/24
+141.22.10.214 10.200.1.0/24
+141.22.10.216 10.200.0.0/24
 ```
