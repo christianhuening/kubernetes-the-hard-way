@@ -1,4 +1,4 @@
-# Kubernetes The ICC Way
+# Kubernetes The HAW-Hamburg Way
 
 This tutorial is the adpation of the original tutorial by Kelsey Hightower to in install a Kubernetes cluster by hand. It containes changes and annotations that specific to the way the Informatik Computer Cluster (ICC) is set up. Furthermore it will contain tags of those parts have been completed and those that are still pending further research and trials.
 
@@ -21,7 +21,7 @@ The target audience for this tutorial is someone planning to support a productio
 * Default Service Account and Secrets
 * [RBAC authorization enabled](https://kubernetes.io/docs/admin/authorization)
 * [TLS client certificate bootstrapping for kubelets](https://kubernetes.io/docs/admin/kubelet-tls-bootstrapping)
-* DNS add-on
+* High-Availability DNS add-on
 
 ### What's Missing
 
@@ -33,8 +33,8 @@ The resulting cluster will be missing the following features:
 
 ## Labs
 
-The ICC is installed on a set of VMs provided by the VMWare-based infrastructure provied by the ITSC as well as a number of bare-metal hosts. Details can be found in the infrastructure document below.
-> This tutorial assumes you have access to [Google Cloud Platform](https://cloud.google.com) and the [Google Cloud SDK](https://cloud.google.com/sdk/)(148.0.0+). While GCP is used for basic infrastructure needs the things learned in this tutorial can be applied to every platform.
+This cluster's pet components are installed on a set of VMs provided by a VMWare-based infrastructure, while the worker nodes use a number
+ of bare-metal hosts. Details can be found in the infrastructure document below.
 
 * [Infrastructure Provisioning](docs/01-infrastructure-icc.md)
 * [Setting up a CA and TLS Cert Generation](docs/02-certificate-authority.md)
