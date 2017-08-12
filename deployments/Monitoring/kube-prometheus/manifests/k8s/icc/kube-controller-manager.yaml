@@ -21,9 +21,7 @@ metadata:
     k8s-app: kube-controller-manager
 subsets:
 - addresses:
-  - ip: 141.22.10.223
-  - ip: 141.22.10.224
-  - ip: 141.22.10.225
+  - ip: IP_OF_API_SERVERS
   ports:
   - name: http-metrics
     port: 10252

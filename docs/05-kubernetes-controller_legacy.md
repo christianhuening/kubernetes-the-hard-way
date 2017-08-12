@@ -115,7 +115,7 @@ ExecStart=/usr/bin/kube-apiserver \\
   --etcd-cafile=/var/lib/kubernetes/ca.pem \\
   --etcd-certfile=/var/lib/kubernetes/kubernetes.pem \\
   --etcd-keyfile=/var/lib/kubernetes/kubernetes-key.pem \\
-  --etcd-servers=https://141.22.30.32:2379,https://141.22.30.33:2379,https://141.22.30.34:2379,https://141.22.30.35:2379,https://141.22.30.36:2379 \\
+  --etcd-servers=LIST_OF_ETCD_SERVERS
   --event-ttl=1h \\
   --experimental-bootstrap-token-auth \\
   --insecure-bind-address=127.0.0.1 \\

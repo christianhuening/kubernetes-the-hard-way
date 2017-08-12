@@ -265,7 +265,7 @@ spec:
     command:
     - /hyperkube
     - proxy
-    - --master=https://141.22.10.222:443
+    - --master=https://YOURMASTERIP:443
     - --cluster-cidr=10.200.0.0/16
     - --kubeconfig=/etc/kubernetes/proxy-kubeconfig.yaml
     securityContext:

@@ -68,14 +68,13 @@ The etcd server will be started and managed by systemd. An appropriate systemd u
 
 
 
-```
-cat > etcd.default <<EOF
+```yaml
 ETCD_NAME="$(hostname -s)"
 ETCD_DATA_DIR="/var/lib/etcd"
 ETCD_LISTEN_PEER_URLS="https://<%= $internal_ip %>:2380"
 ETCD_LISTEN_CLIENT_URLS="https://<%= $internal_ip %>:2379,https://localhost:2379"
 ETCD_INITIAL_ADVERTISE_PEER_URLS="https://<%= $internal_ip %>:2380"
-ETCD_INITIAL_CLUSTER="icc-etcd-1=https://141.22.30.32:2380,icc-etcd-2=https://141.22.30.33:2380,icc-etcd-3=https://141.22.30.34:2380,icc-etcd-4=https://141.22.30.352380,icc-etcd-5=https://141.22.30.36:2380"
+ETCD_INITIAL_CLUSTER="icc-etcd-1=IP,..."
 ETCD_INITIAL_CLUSTER_STATE="new"
 ETCD_INITIAL_CLUSTER_TOKEN="etcd-cluster-0"
 ETCD_ADVERTISE_CLIENT_URLS="https://<%= $internal_ip %>:2379"
@@ -87,7 +86,7 @@ ETCD_PEER_CERT_FILE="/etc/etcd/kubernetes.pem"
 ETCD_PEER_KEY_FILE="/etc/etcd/kubernetes-key.pem"
 ETCD_PEER_CLIENT_CERT_AUTH="true"
 ETCD_PEER_TRUSTED_CA_FILE="/etc/etcd/ca.pem"
-EOF
+
 ```
 
 Once the etcd systemd unit file is ready, move it to the systemd system directory:
@@ -115,31 +114,3 @@ sudo systemctl status etcd --no-pager
 ```
 
 > Remember to run these steps on all five nodes of the etcd cluster
-
-## Verification
-
-Once all 5 etcd nodes have been bootstrapped verify the etcd cluster is healthy:
-
-* On one of the controller nodes run the following command:
-
-```
-sudo etcdctl \
-  --ca-file=/etc/etcd/ca.pem \
-  --cert-file=/etc/etcd/etcd.pem \
-  --key-file=/etc/etcd/etcd-key.pem \
-  --insecure-transport=false \
-  --endpoints=141.22.30.36:2379 \
-  -w table member list
-```
-
-```
-+------------------+---------+------------+---------------------------+---------------------------+
-|        ID        | STATUS  |    NAME    |        PEER ADDRS         |       CLIENT ADDRS        |
-+------------------+---------+------------+---------------------------+---------------------------+
-| 3d0fa8ceae1b7a61 | started | icc-etcd-4 | https://141.22.30.35:2380 | https://141.22.30.35:2379 |
-| 3d9ce7c381e7f003 | started | icc-etcd-3 | https://141.22.30.34:2380 | https://141.22.30.34:2379 |
-| ca225d371e604f6c | started | icc-etcd-2 | https://141.22.30.33:2380 | https://141.22.30.33:2379 |
-| f15071bb2bcc0510 | started | icc-etcd-1 | https://141.22.30.32:2380 | https://141.22.30.32:2379 |
-| f65430d6c44d7a2a | started | icc-etcd-5 | https://141.22.30.36:2380 | https://141.22.30.36:2379 |
-+------------------+---------+------------+---------------------------+---------------------------+
-```

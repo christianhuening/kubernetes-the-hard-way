@@ -152,7 +152,7 @@ spec:
     - --etcd-cafile=/etc/kubernetes/ssl/ca.pem
     - --etcd-certfile=/etc/kubernetes/ssl/kubernetes.pem
     - --etcd-keyfile=/etc/kubernetes/ssl/kubernetes-key.pem
-    - --etcd-servers=https://141.22.30.32:2379,https://141.22.30.33:2379,https://141.22.30.34:2379,https://141.22.30.35:2379,https://141.22.30.36:2379
+    - --etcd-servers=LIST_OF_ETCD_SERVERS
     - --allow-privileged=true
     - --service-cluster-ip-range=10.32.0.0/24
     - --secure-port=443

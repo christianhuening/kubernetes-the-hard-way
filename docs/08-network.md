@@ -85,17 +85,3 @@ kubectl apply -f ${KTIW_ROOT}/config_maps/canal_fabric.yaml
 
 This will set up a network in each node and configure it to use flannel and calico.
 
-## Check the Network Adresses ##
-
-```
-kubectl get nodes \
-  --output=jsonpath='{range .items[*]}{.status.addresses[?(@.type=="InternalIP")].address} {.spec.podCIDR} {"\n"}{end}'
-```
-
-shoud provide a list similar to this:
-
-```
-141.22.10.209 10.200.2.0/24
-141.22.10.214 10.200.1.0/24
-141.22.10.216 10.200.0.0/24
-```
