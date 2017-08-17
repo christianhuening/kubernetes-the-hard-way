@@ -5,10 +5,8 @@ Run the following commands from the machine which will be your Kubernetes Client
 ## Download and Install kubectl
 ### Windows
 ```
-1. Download kubectl for Windows from here: https://github.com/eirslett/kubectl-windows/releases
-2. Put it in a place that you want to add to your path and add that place to your path
-ALTERNATIVELY follow this guide:
-https://gist.github.com/AdamLJohnson/16b55b66c84ce53868b3923f3b7ae706
+1. Get kubectl from there: https://storage.googleapis.com/kubernetes-release/release/v1.7.0/bin/windows/amd64/kubectl.exe
+2. Put it into your PATH
 ```
 
 ### OS X

@@ -40,6 +40,7 @@ This cluster's pet components are installed on a set of VMs provided by a VMWare
 * [Setting up a CA and TLS Cert Generation](docs/02-certificate-authority.md)
 * [Setting up a HAProxy to provide reliable IP](docs/02.5-haproxy.md)
 * [Setting up TLS Client Bootstrap and RBAC Authentication](docs/03-auth-configs.md)
+* [Configuring Nodes to use Private Docker Registry](docs/private-docker-registry.md)
 * [Bootstrapping a H/A etcd cluster](docs/04-etcd.md)
 * [Bootstrapping H/A Kubernetes Master Nodes](docs/05-kubernetes-controller.md)
 * [Bootstrapping Kubernetes Workers](docs/06-kubernetes-worker.md)

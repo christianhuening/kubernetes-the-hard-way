@@ -205,6 +205,7 @@ After=docker.service
 Requires=docker.service
 
 [Service]
+Environment=HOME=/root
 ExecStart=/usr/bin/kubelet \
   --allow-privileged=true \
   --cluster-dns=10.32.0.10,10.32.0.11,10.32.0.12 \

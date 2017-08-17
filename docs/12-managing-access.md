@@ -8,13 +8,7 @@ Private Image Registries
 ------------------------
 
 How to gain access to a private registry is explained in detail in
-[Pulling an Image from a Private Registry](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/)
-on the kubernetes documentation site.
-
-The required URL can be found on the registry page of your Gitlab project.
-
-In order for kubernetes to log into the registry a machine user is needed for your project.
-Contact the Gitlab Administrator to set this up for you.
+[Configuring Nodes to use Private Docker Registry](docs/private-docker-registry.md)
 
 Granting Access for User
 ------------------------
