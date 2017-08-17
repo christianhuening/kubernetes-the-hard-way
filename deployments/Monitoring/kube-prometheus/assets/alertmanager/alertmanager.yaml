@@ -5,7 +5,6 @@ route:
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 12h
-  receiver: 'slack_icc_monitoring'
 
 receivers:
 
@@ -13,7 +12,3 @@ receivers:
   webhook_configs:
   - url: 'http://alertmanagerwh:30500/'
 
-- name: slack_icc_monitoring
-  slack_configs:
-    - api_url: https://hooks.slack.com/services/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
-      channel: '#icc-monitoring'

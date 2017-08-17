@@ -20,10 +20,16 @@ metadata:
     k8s-app: etcd
 subsets:
 - addresses:
-  - ip: IP
-    nodeName: HOSTNAME
-
-
+  - ip: 141.22.30.32
+    nodeName: icc-etcd-1.informatik.haw-hamburg.de
+  - ip: 141.22.30.33
+    nodeName: icc-etcd-2.informatik.haw-hamburg.de
+  - ip: 141.22.30.34
+    nodeName: icc-etcd-3.informatik.haw-hamburg.de
+  - ip: 141.22.30.35
+    nodeName: icc-etcd-4.informatik.haw-hamburg.de
+  - ip: 141.22.30.36
+    nodeName: icc-etcd-5.informatik.haw-hamburg.de
   ports:
   - name: api
     port: 2379
