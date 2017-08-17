@@ -3,10 +3,6 @@
 This tutorial is the adpation of the original tutorial by Kelsey Hightower to in install a Kubernetes cluster by hand. It containes changes and annotations that specific to the way the Informatik Computer Cluster (ICC) is set up. Furthermore it will contain tags of those parts have been completed and those that are still pending further research and trials.
 
 
-This tutorial is optimized for learning, which means taking the long route to help people understand each task required to bootstrap a Kubernetes cluster.
-
-> The results of this tutorial should not be viewed as production ready, and may receive limited support from the community, but don't let that prevent you from learning!
-
 ## Target Audience
 
 The target audience for this tutorial is someone planning to support a production Kubernetes cluster and wants to understand how everything fits together. After completing this tutorial I encourage you to automate away the manual steps presented in this guide.
