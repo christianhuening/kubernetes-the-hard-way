@@ -14,74 +14,40 @@ Requirements:
 
 The following steps below have to be performed for each of the nodes `icc-node-1`, `icc-node-2` and `icc-node-3`:
 
-Switch the network plugin from `kubenet` to `cni` by changing the kubelet systemd service definition:
-
-```
-cat > kubelet.service <<EOF
-[Unit]
-Description=Kubernetes Kubelet
-Documentation=https://github.com/GoogleCloudPlatform/kubernetes
-After=docker.service
-Requires=docker.service
-
-[Service]
-ExecStart=/usr/bin/kubelet \\
-  --api-servers=https://${PUBLIC_K8S_ADDRESS}:443 \\
-  --allow-privileged=true \\
-  --cluster-dns=10.32.0.10 \\
-  --cluster-domain=cluster.local \\
-  --container-runtime=docker \\
-  --experimental-bootstrap-kubeconfig=/var/lib/kubelet/bootstrap.kubeconfig \\
-  --network-plugin=cni \\
-  --kubeconfig=/var/lib/kubelet/kubeconfig \\
-  --serialize-image-pulls=false \\
-  --register-node=true \\
-  --tls-cert-file=/var/lib/kubelet/kubelet-client.crt \\
-  --tls-private-key-file=/var/lib/kubelet/kubelet-client.key \\
-  --cert-dir=/var/lib/kubelet \\
-  --v=2
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
-```
-
-```
-sudo mv kubelet.service /etc/systemd/system/kubelet.service
-```
-
-```
-sudo systemctl daemon-reload
-```
-
-```
-sudo systemctl enable kubelet
-```
-
-```
-sudo systemctl start kubelet
-```
-
-```
-sudo systemctl status kubelet --no-pager
-```
-
 
 ## Applying the Network ##
 
 To set up the neccesary roles and permission, the ConfigMap provided by the Canal project will work without changes.
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/projectcalico/canal/master/k8s-install/1.6/rbac.yaml
+kubectl apply -f ./network/rbac_rules.yaml
 ```
 
-The actual setup of the network elements needs some small changes, mainly due to the changed CIDR for the pod networks (`10.200.0.0/16` instead of the `10.244.0.0/16` used by the original confguration (KTIW_ROOT is the top directory of this document).
+The actual setup of the network elements needs some small changes, mainly due to the changed CIDR for the pod networks (`10.200.0.0/16` instead of the `10.244.0.0/16` used by the original configuration.
 
 ```
-kubectl apply -f ${KTIW_ROOT}/config_maps/canal_fabric.yaml
+kubectl apply -f ./network/canal_fabric.yaml
 ```
 
 This will set up a network in each node and configure it to use flannel and calico.
+
+## Hint to Tolerations
+In case you're using the Taints and Tolerations Beta Feature (https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#taints-and-tolerations-beta-feature)
+and have nodes with taints, you most likely want to add a Toleration to your Canal DaemonSet deployment in order to allow
+it to also run the Canal Pods on tainted nodes.
+
+## Check the Network Adresses ##
+
+```
+kubectl get nodes \
+  --output=jsonpath='{range .items[*]}{.status.addresses[?(@.type=="InternalIP")].address} {.spec.podCIDR} {"\n"}{end}'
+```
+
+shoud provide a list similar to this:
+
+```
+141.22.10.209 10.200.2.0/24
+141.22.10.214 10.200.1.0/24
+141.22.10.216 10.200.0.0/24
+```
 
